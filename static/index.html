@@ -11,11 +11,14 @@
 
 <body>
   <h1>What's my weather?</h1>
+  <h2>Important: This code uses OSMF Nominatim, which is governed by this <a href="https://operations.osmfoundation.org/policies/nominatim/">usage policy.</a></a></h2>
   <div><input id="location" type="text" value="San Jose"></div>
-  <div><button onclick="getWeatherFromLocation()">Get Weather</button></div>
+  <div><button onclick="getWeatherFromLocation()">Look Up Location</button></div>
 
-  <div id="weatherCallback">I haven't been updated</div>
-  <div id="weatherPromise">I haven't been updated</div>
+  <div id="locations"></div>
+
+  <div id="weatherCallback"></div>
+  <div id="weatherPromise"></div>
 
   <script src="https://code.jquery.com/jquery-3.5.1.min.js" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios@0.20.0/dist/axios.min.js"></script>
@@ -49,7 +52,7 @@
 
         $("#weatherCallback").empty();
         $("#weatherCallback").text("");
-        weatherJSON.forEach(i=>$("#weatherCallback").append(`<div>Time: ${moment.duration(moment().diff(moment(i.startTime.replace("TO"," ")))).humanize()} <img src='${i.icon}'>Temp: ${i.temperature} ${i.temperatureUnit}</div>`))
+        weatherJSON.forEach(i=>$("#weatherCallback").append(`<div>Time: ${moment(i.startTime.replace("TO"," ")).format("ddd, hA")} <img src='${i.icon}'>Temp: ${i.temperature} ${i.temperatureUnit}</div>`))
 
         //document.getElementById("weatherCallback").innerHTML = JSON.stringify(weatherJSON, null, 2).replaceAll("\n","<br>")
         
@@ -69,18 +72,45 @@
       })
     }
 
-    getWeatherCallback();
+    //getWeatherCallback();
     
-    getWeatherPromise();
+    //getWeatherPromise();
 
-    function getWeatherFromLocation(){
-      let location = $("#lcoation").text();
-      axios.get(`/api/location/${location}`)
+    function selectPlace(lat, lon){
+      axios.get(`./api/latlong/${lat}/${lon}`)
       .then(result=>{
         console.log(result.data);
+        return axios.get(result.data);
+      })
+      .then(result=>{
+        console.log(result.data);
+        let weatherJSON = result.data.properties.periods;
+        console.log(weatherJSON);
+
+        $("#weatherCallback").empty();
+        $("#weatherCallback").text("");
+        weatherJSON.forEach(i=>$("#weatherCallback").append(`<div>Time: ${moment(i.startTime.replace("TO"," ")).format("ddd, hA")} <img src='${i.icon}'>Temp: ${i.temperature} ${i.temperatureUnit}</div>`))
+
       })
       .catch(err=>{
-        console.err(err);
+        console.error(err);
+      })
+    }
+
+    function getWeatherFromLocation(){
+      let location = $("#location").val();
+      let query = `./api/location/${location}`;
+      console.log(query);
+      axios.get(query)
+      .then(result=>{
+        console.log(result.data);
+        $("#locations").empty();
+        $("#locations").text("");
+        result.data.forEach(i=>$("#locations").append(`<div><button onclick='selectPlace(${i.lat},${i.lon})'>Select</button>${i.display_name} </div>`))
+
+      })
+      .catch(err=>{
+        console.error(err);
       })
 
     }
